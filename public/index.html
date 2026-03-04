@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FluxKart — Parts Request Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080600;
+    --surface: #100d00;
+    --surface2: #181200;
+    --border: #2a2000;
+    --yellow: #ffe600;
+    --orange: #ff7a00;
+    --amber: #ffb300;
+    --text: #fff8e7;
+    --muted: #8a7040;
+    --dim: #5a4820;
+    --font-hud: 'Orbitron', monospace;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-body: 'Rajdhani', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 80px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,180,0,0.15) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; width: 100%; max-width: 640px; }
+
+  /* Social */
+  .social-bar { display: flex; justify-content: center; gap: 12px; margin-bottom: 32px; }
+  .social-link {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); padding: 6px 14px;
+    border-radius: 2px; background: var(--surface); transition: all 0.2s;
+  }
+  .social-link:hover { color: var(--yellow); border-color: rgba(255,230,0,0.3); background: rgba(255,230,0,0.04); }
+
+  /* Header */
+  header { text-align: center; margin-bottom: 32px; }
+
+  .flux-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+  .flux-line { height: 1px; width: 48px; }
+  .flux-line.l { background: linear-gradient(90deg, transparent, var(--orange)); }
+  .flux-line.r { background: linear-gradient(90deg, var(--orange), transparent); }
+  .flux-dot { width: 7px; height: 7px; background: var(--yellow); border-radius: 50%; box-shadow: 0 0 10px var(--yellow), 0 0 20px var(--orange); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .store-tag { font-family: var(--font-hud); font-size: 9px; letter-spacing: 0.2em; color: var(--orange); margin-bottom: 12px; }
+
+  h1 { font-family: var(--font-hud); font-size: clamp(20px, 4vw, 34px); font-weight: 900; line-height: 1.2; margin-bottom: 8px; }
+  h1 .l1 { display: block; color: var(--yellow); text-shadow: 0 0 20px rgba(255,230,0,0.4); }
+  h1 .l2 { display: block; color: var(--orange); text-shadow: 0 0 20px rgba(255,122,0,0.4); }
+
+  .sub { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+  .speed-bar { display: flex; align-items: center; justify-content: center; gap: 3px; margin-top: 14px; }
+  .mb { width: 15px; height: 5px; background: var(--border); border-radius: 1px; }
+  .mb.lit { background: var(--orange); box-shadow: 0 0 5px var(--orange); }
+  .mb.max { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); animation: pulse 0.8s infinite; }
+  .mph { font-family: var(--font-hud); font-size: 8px; color: var(--amber); margin-left: 8px; letter-spacing: 0.1em; }
+
+  /* Rules strip */
+  .rules-strip {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface);
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .rules-strip::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--yellow), transparent);
+    opacity: 0.4;
+  }
+  .rules-head {
+    font-family: var(--font-hud); font-size: 8px; letter-spacing: 0.18em;
+    color: var(--amber); text-transform: uppercase; margin-bottom: 12px;
+  }
+  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rule {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    color: var(--text); line-height: 1.4;
+  }
+  .rn {
+    font-family: var(--font-hud); font-size: 8px;
+    color: var(--orange); background: rgba(255,122,0,0.12);
+    border: 1px solid rgba(255,122,0,0.25);
+    padding: 2px 6px; border-radius: 2px; margin-top: 2px; flex-shrink: 0;
+  }
+  .rule b { color: var(--yellow); font-weight: 700; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; margin-bottom: 0; }
+  .tab {
+    flex: 1; padding: 11px;
+    font-family: var(--font-hud); font-size: 9px; letter-spacing: 0.15em;
+    text-transform: uppercase; text-align: center; cursor: pointer;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--dim); transition: all 0.2s;
+  }
+  .tab:first-child { border-radius: 3px 0 0 0; }
+  .tab:last-child { border-radius: 0 3px 0 0; border-left: none; }
+  .tab.active { background: var(--surface); color: var(--yellow); border-bottom-color: var(--surface); }
+
+  /* Panel */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-top: none; border-radius: 0 0 3px 3px;
+    overflow: hidden; margin-bottom: 14px; position: relative;
+  }
+  .panel::before {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--orange), transparent); opacity: 0.3;
+  }
+
+  .tab-content { display: none; padding: 22px; }
+  .tab-content.active { display: block; }
+
+  /* Parts grid */
+  .section-label {
+    font-family: var(--font-hud); font-size: 8px; letter-spacing: 0.18em;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 10px; display: block;
+  }
+
+  .parts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+
+  .part-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 3px; padding: 10px 12px;
+    cursor: pointer; transition: all 0.2s; user-select: none;
+  }
+  .part-item:hover { border-color: rgba(255,180,0,0.3); }
+  .part-item.selected { border-color: rgba(255,230,0,0.5); background: rgba(255,230,0,0.05); }
+
+  .part-check {
+    width: 14px; height: 14px; border: 1px solid var(--border);
+    border-radius: 2px; flex-shrink: 0; display: flex;
+    align-items: center; justify-content: center; font-size: 9px; transition: all 0.15s;
+  }
+  .part-item.selected .part-check { background: var(--yellow); border-color: var(--yellow); color: #080600; }
+
+  .part-name { font-family: var(--font-mono); font-size: 12px; color: var(--text); line-height: 1.3; }
+  .part-item.selected .part-name { color: var(--yellow); }
+  .part-code { font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+  .queue-note {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--muted); margin-bottom: 18px;
+    padding: 8px 12px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 3px;
+    transition: color 0.2s;
+  }
+  .queue-note .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: all 0.2s; }
+  .queue-note.express { color: var(--yellow); border-color: rgba(255,230,0,0.25); }
+  .queue-note.express .dot { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .queue-note.bulk { color: var(--orange); border-color: rgba(255,122,0,0.25); }
+  .queue-note.bulk .dot { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+
+  .divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+  /* Fields */
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label { font-family: var(--font-hud); font-size: 8px; letter-spacing: 0.18em; color: var(--muted); text-transform: uppercase; }
+
+  input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 3px; padding: 11px 14px;
+    color: var(--yellow); font-family: var(--font-mono); font-size: 13px;
+    outline: none; transition: all 0.2s; caret-color: var(--orange);
+  }
+  input:focus { border-color: rgba(255,180,0,0.5); box-shadow: 0 0 0 2px rgba(255,180,0,0.07); }
+  input::placeholder { color: var(--dim); }
+
+  /* Buttons */
+  .btn {
+    width: 100%; padding: 13px;
+    background: transparent; border: 1px solid var(--yellow);
+    border-radius: 3px; color: var(--yellow);
+    font-family: var(--font-hud); font-size: 10px; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+    text-shadow: 0 0 10px rgba(255,230,0,0.5);
+    box-shadow: 0 0 14px rgba(255,230,0,0.1);
+  }
+  .btn:hover { background: rgba(255,230,0,0.07); box-shadow: 0 0 24px rgba(255,230,0,0.2); }
+  .btn:active { transform: scale(0.99); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn.secondary { border-color: rgba(255,180,0,0.4); color: var(--amber); text-shadow: none; box-shadow: none; }
+  .btn.secondary:hover { background: rgba(255,180,0,0.06); }
+
+  .btn-inner { display: flex; align-items: center; justify-content: center; gap: 9px; }
+  .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,230,0,0.25); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* History */
+  .history-results { margin-top: 16px; }
+  .history-entry {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 3px; padding: 12px 14px; margin-bottom: 8px;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .history-entry.show { opacity: 1; transform: translateY(0); }
+  .h-badge {
+    display: inline-block; font-family: var(--font-hud);
+    font-size: 8px; letter-spacing: 0.12em; padding: 2px 8px;
+    border-radius: 2px; margin-bottom: 8px;
+  }
+  .h-badge.primary { background: rgba(255,230,0,0.1); color: var(--yellow); border: 1px solid rgba(255,230,0,0.2); }
+  .h-badge.secondary { background: rgba(255,122,0,0.1); color: var(--orange); border: 1px solid rgba(255,122,0,0.2); }
+  .h-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(255,180,0,0.05); }
+  .h-row:last-child { border-bottom: none; }
+  .h-key { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .h-val { font-family: var(--font-mono); font-size: 11px; color: var(--text); text-align: right; max-width: 60%; word-break: break-all; }
+  .history-empty { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; padding: 24px 0; }
+
+  /* Response */
+  .response-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 3px; overflow: hidden; margin-bottom: 14px;
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .response-panel.visible { opacity: 1; transform: translateY(0); }
+  .response-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+    background: rgba(255,180,0,0.02);
+  }
+  .s-ok { font-family: var(--font-mono); font-size: 11px; color: #aaff44; border: 1px solid rgba(170,255,68,0.2); padding: 3px 10px; border-radius: 2px; background: rgba(170,255,68,0.05); }
+  .s-err { font-family: var(--font-mono); font-size: 11px; color: #ff5555; border: 1px solid rgba(255,85,85,0.2); padding: 3px 10px; border-radius: 2px; background: rgba(255,85,85,0.05); }
+  .copy-btn { background: transparent; border: 1px solid var(--border); border-radius: 2px; color: var(--muted); font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; cursor: pointer; transition: all 0.2s; }
+  .copy-btn:hover { color: var(--yellow); border-color: rgba(255,230,0,0.3); }
+  pre { padding: 18px 20px; font-family: var(--font-mono); font-size: 13px; line-height: 1.8; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .jk { color: #ffb300; } .js { color: #ffe08a; } .jn { color: #ffe600; } .jb { color: var(--orange); } .jnull { color: var(--muted); }
+
+  /* Quick tests */
+  .quick-tests { margin-top: 6px; }
+  .test-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+  .pill {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 2px; padding: 6px 13px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+  }
+  .pill:hover { border-color: rgba(255,180,0,0.3); color: var(--amber); background: rgba(255,180,0,0.04); }
+
+  /* Confirm overlay */
+  .confirm-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(8,6,0,0.88); z-index: 200;
+    align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-box {
+    background: var(--surface); border: 1px solid rgba(255,230,0,0.25);
+    border-radius: 4px; padding: 32px 36px; max-width: 420px; width: 90%;
+    text-align: center; box-shadow: 0 0 60px rgba(255,180,0,0.12);
+    animation: popIn 0.2s ease; position: relative;
+  }
+  .confirm-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--yellow), transparent); }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
+  .confirm-icon { font-size: 36px; margin-bottom: 14px; animation: pulse 1.5s infinite; }
+  .confirm-title { font-family: var(--font-hud); font-size: 13px; color: var(--yellow); letter-spacing: 0.1em; text-shadow: 0 0 16px rgba(255,230,0,0.4); margin-bottom: 8px; }
+  .confirm-msg { font-family: var(--font-mono); font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+  .confirm-parts { font-family: var(--font-mono); font-size: 11px; color: var(--amber); line-height: 1.9; margin-bottom: 16px; white-space: pre-line; }
+  .confirm-divider { height: 1px; background: var(--border); margin: 14px 0 12px; }
+  .confirm-lbl { font-family: var(--font-hud); font-size: 8px; letter-spacing: 0.15em; color: var(--muted); text-align: left; margin-bottom: 8px; }
+  .confirm-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,180,0,0.06); }
+  .confirm-row:last-of-type { border-bottom: none; }
+  .ck { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .cv { font-family: var(--font-mono); font-size: 11px; color: var(--text); text-align: right; max-width: 60%; word-break: break-all; }
+  .cv.hi { color: var(--yellow); text-shadow: 0 0 8px rgba(255,230,0,0.4); font-weight: bold; }
+  .confirm-box { max-height: 90vh; overflow-y: auto; }
+  .confirm-history { margin-top: 4px; text-align: left; }
+  .confirm-history-empty { font-family: var(--font-mono); font-size: 11px; color: var(--dim); text-align: center; padding: 10px 0; }
+  .ch-entry {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 3px; padding: 10px 12px; margin-bottom: 6px;
+    opacity: 0; transform: translateY(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .ch-entry.show { opacity: 1; transform: translateY(0); }
+  .ch-entry .h-badge { margin-bottom: 6px; }
+  .confirm-close { margin-top: 20px; background: transparent; border: 1px solid rgba(255,230,0,0.3); border-radius: 3px; color: var(--yellow); font-family: var(--font-hud); font-size: 9px; letter-spacing: 0.15em; padding: 10px 28px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+  .confirm-close:hover { background: rgba(255,230,0,0.07); }
+
+  /* PS note */
+  .ps-note { margin-top: 28px; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); padding: 14px 18px; position: relative; }
+  .ps-note::before { content: 'PS'; position: absolute; top: -9px; left: 14px; font-family: var(--font-hud); font-size: 8px; letter-spacing: 0.15em; color: var(--orange); background: var(--surface); padding: 0 6px; }
+  .ps-note p { font-family: var(--font-mono); font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .ps-note p b { color: var(--amber); font-weight: normal; }
+
+  .doc-quote { text-align: center; padding: 22px 0 0; font-family: var(--font-mono); font-size: 11px; color: var(--dim); line-height: 1.7; }
+  .doc-quote em { color: var(--amber); font-style: normal; }
+
+  @media (max-width: 520px) {
+    .fields, .parts-grid, .rules-grid { grid-template-columns: 1fr; }
+    .confirm-box { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚡</div>
+    <div class="confirm-title">Request Transmitted</div>
+    <div class="confirm-msg">Your order has been logged and queued.</div>
+    <div class="confirm-parts" id="confirmParts"></div>
+    <div class="confirm-divider"></div>
+    <div class="confirm-lbl">// Request made under</div>
+    <div class="confirm-row"><span class="ck">Name</span><span class="cv" id="cName">—</span></div>
+    <div class="confirm-row"><span class="ck">Email</span><span class="cv" id="cEmail">—</span></div>
+    <div class="confirm-row"><span class="ck">Phone</span><span class="cv" id="cPhone">—</span></div>
+    <div class="confirm-row"><span class="ck">Contact ID</span><span class="cv hi" id="cId">—</span></div>
+    <div class="confirm-row"><span class="ck">Customer</span><span class="cv" id="cStatus">—</span></div>
+    <div class="confirm-divider"></div>
+    <div class="confirm-lbl">// Past purchases on this account</div>
+    <div class="confirm-history" id="confirmHistory">
+      <div class="confirm-history-empty">Loading...</div>
+    </div>
+    <button class="confirm-close" onclick="closeConfirm()">Back to 1985</button>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <div class="social-bar">
+    <a class="social-link" href="https://github.com/Kaustubh2k5" target="_blank">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      Kaustubh2k5
+    </a>
+    <a class="social-link" href="https://www.linkedin.com/in/kaustubh-sardesai2k5/" target="_blank">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      kaustubh-sardesai2k5
+    </a>
+  </div>
+
+  <header>
+    <div class="store-tag">FluxKart.com &nbsp;//&nbsp; Special Orders Portal</div>
+    <div class="flux-row">
+      <div class="flux-line l"></div>
+      <div class="flux-dot"></div>
+      <div class="flux-line r"></div>
+    </div>
+    <h1>
+      <span class="l1">Make a Request for</span>
+      <span class="l2">Time Machine Parts</span>
+    </h1>
+    <div class="sub">Submit your order — your identity is matched across all purchases.</div>
+    <div class="speed-bar">
+      <div class="mb lit"></div><div class="mb lit"></div><div class="mb lit"></div>
+      <div class="mb lit"></div><div class="mb lit"></div><div class="mb lit"></div>
+      <div class="mb lit"></div><div class="mb max"></div>
+      <span class="mph">88 MPH</span>
+    </div>
+  </header>
+
+  <!-- Rules -->
+  <div class="rules-strip">
+    <div class="rules-head">Queue Rules</div>
+    <div class="rules-grid">
+      <div class="rule"><span class="rn">01</span><span><b>1–2 parts</b> → Express queue, processed first.</span></div>
+      <div class="rule"><span class="rn">02</span><span><b>3+ parts</b> → Bulk queue, added to end.</span></div>
+      <div class="rule"><span class="rn">03</span><span>Identity matched by <b>email or phone</b> across all orders.</span></div>
+      <div class="rule"><span class="rn">04</span><span>Multiple accounts are <b>auto-linked</b> to your primary.</span></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('order')">⚡ &nbsp;Place Order</div>
+    <div class="tab" onclick="switchTab('history')">◎ &nbsp;Purchase History</div>
+  </div>
+
+  <div class="panel">
+
+    <!-- ORDER TAB -->
+    <div class="tab-content active" id="tab-order">
+
+      <span class="section-label">// Select parts</span>
+      <div class="parts-grid" id="partsGrid">
+        <div class="part-item" onclick="togglePart(this,'Flux Capacitor')">
+          <div class="part-check">✓</div>
+          <div><div class="part-name">Flux Capacitor</div><div class="part-code">FC-1985-CORE</div></div>
+        </div>
+        <div class="part-item" onclick="togglePart(this,'Mr. Fusion Reactor')">
+          <div class="part-check">✓</div>
+          <div><div class="part-name">Mr. Fusion Reactor</div><div class="part-code">MF-2015-PWR</div></div>
+        </div>
+        <div class="part-item" onclick="togglePart(this,'Time Circuits Board')">
+          <div class="part-check">✓</div>
+          <div><div class="part-name">Time Circuits Board</div><div class="part-code">TC-88MPH-DLR</div></div>
+        </div>
+        <div class="part-item" onclick="togglePart(this,'Plutonium Chamber')">
+          <div class="part-check">✓</div>
+          <div><div class="part-name">Plutonium Chamber</div><div class="part-code">PL-NUC-1.21GW</div></div>
+        </div>
+        <div class="part-item" onclick="togglePart(this,'Hover Conversion Kit')">
+          <div class="part-check">✓</div>
+          <div><div class="part-name">Hover Conversion Kit</div><div class="part-code">HV-2015-LIFT</div></div>
+        </div>
+        <div class="part-item" onclick="togglePart(this,'Lightning Rod Array')">
+          <div class="part-check">✓</div>
+          <div><div class="part-name">Lightning Rod Array</div><div class="part-code">LR-1.21GW-EXT</div></div>
+        </div>
+      </div>
+
+      <div class="queue-note" id="queueNote">
+        <div class="dot"></div>
+        <span id="queueText">Select parts to see queue priority</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <span class="section-label">// Your details</span>
+      <div class="fields" style="grid-template-columns:1fr">
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="nameInput" placeholder="Dr. Emmett Brown" />
+        </div>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <label>Email Address</label>
+          <input type="email" id="emailInput" placeholder="lorraine@hillvalley.edu" />
+        </div>
+        <div class="field">
+          <label>Phone Number</label>
+          <input type="text" id="phoneInput" placeholder="123456" />
+        </div>
+      </div>
+
+      <button class="btn" id="sendBtn" onclick="sendRequest()">
+        <span class="btn-inner">
+          <div class="spinner" id="spinner"></div>
+          <span id="btnText">⚡ Submit Request</span>
+        </span>
+      </button>
+
+      <div class="quick-tests">
+        <span class="section-label" style="margin-top:18px">// Quick test scenarios</span>
+        <div class="test-pills">
+          <div class="pill" onclick="fillTest('lorraine@hillvalley.edu','123456')">New Primary</div>
+          <div class="pill" onclick="fillTest('mcfly@hillvalley.edu','123456')">Add Secondary</div>
+          <div class="pill" onclick="fillTest('george@hillvalley.edu','919191')">Primary A</div>
+          <div class="pill" onclick="fillTest('biffsucks@hillvalley.edu','717171')">Primary B</div>
+          <div class="pill" onclick="fillTest('george@hillvalley.edu','717171')">Merge Primaries</div>
+          <div class="pill" onclick="fillTest('','123456')">Phone Only</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="tab-content" id="tab-history">
+      <span class="section-label">// Look up past purchases by email or phone</span>
+      <div class="fields">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="historyEmail" placeholder="lorraine@hillvalley.edu" />
+        </div>
+        <div class="field">
+          <label>Phone Number</label>
+          <input type="text" id="historyPhone" placeholder="123456" />
+        </div>
+      </div>
+      <button class="btn secondary" id="lookupBtn" onclick="lookupHistory()">
+        <span class="btn-inner">
+          <div class="spinner" id="lookupSpinner"></div>
+          <span id="lookupText">◎ Retrieve Logs</span>
+        </span>
+      </button>
+      <div class="history-results" id="historyResults"></div>
+    </div>
+
+  </div>
+
+  <!-- API Response -->
+  <div class="response-panel" id="responseCard">
+    <div class="response-header">
+      <span class="section-label" style="margin:0">API Response</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="statusBadge" class="s-ok">200 OK</span>
+        <button class="copy-btn" onclick="copyResponse()">Copy</button>
+      </div>
+    </div>
+    <pre id="responseBody"></pre>
+  </div>
+
+  <div class="ps-note">
+    <p>This is a <b>test portal</b> for the BiteSpeed identity reconciliation API. In production, this would require email verification and authentication before processing requests.</p>
+  </div>
+
+  <div class="doc-quote">
+    "If you're going to build a time machine into a car,<br>
+    why not do it with some <em>style</em>?" — Doc Brown
+  </div>
+
+</div>
+<!-- ONLY THE SCRIPT SECTION CHANGED -->
+<script>
+  const selectedParts = new Set()
+  let sending = false
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (tab==='order'&&i===0)||(tab==='history'&&i===1)))
+    document.getElementById('tab-order').classList.toggle('active', tab==='order')
+    document.getElementById('tab-history').classList.toggle('active', tab==='history')
+  }
+
+  function togglePart(el, name) {
+    el.classList.toggle('selected')
+    selectedParts[el.classList.contains('selected') ? 'add' : 'delete'](name)
+    updateQueueNote()
+  }
+
+  function updateQueueNote() {
+    const n = selectedParts.size
+    const note = document.getElementById('queueNote')
+    const text = document.getElementById('queueText')
+    if (n === 0) {
+      note.className = 'queue-note'
+      text.textContent = 'Select parts to see queue priority'
+    }
+    else if (n <= 2) {
+      note.className = 'queue-note express'
+      text.textContent = `${n} part${n>1?'s':''} selected — Express queue (processed first)`
+    }
+    else {
+      note.className = 'queue-note bulk'
+      text.textContent = `${n} parts selected — Bulk order (added to end of queue)`
+    }
+  }
+
+  function fillTest(email, phone) {
+    document.getElementById('emailInput').value = email
+    document.getElementById('phoneInput').value = phone
+  }
+
+  function syntaxHighlight(json) {
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      if (/^"/.test(m)) return /:$/.test(m) ? `<span class="jk">${m}</span>` : `<span class="js">${m}</span>`
+      if (/true|false/.test(m)) return `<span class="jb">${m}</span>`
+      if (/null/.test(m)) return `<span class="jnull">${m}</span>`
+      return `<span class="jn">${m}</span>`
+    })
+  }
+
+  function closeConfirm() {
+    document.getElementById('confirmOverlay').classList.remove('show')
+  }
+
+  async function sendRequest() {
+
+    if (sending) return
+    sending = true
+
+    const email = document.getElementById('emailInput').value.trim()
+    const phone = document.getElementById('phoneInput').value.trim()
+    const name = document.getElementById('nameInput').value.trim()
+
+    if (!email && !phone) {
+      alert('Great Scott! Enter at least an email or phone number.')
+      sending = false
+      return
+    }
+
+    const btn = document.getElementById('sendBtn')
+    const spinner = document.getElementById('spinner')
+    const btnText = document.getElementById('btnText')
+
+    btn.disabled = true
+    spinner.style.display = 'block'
+    btnText.textContent = 'Transmitting...'
+
+    const body = {}
+
+    if (email) body.email = email
+    if (phone) body.phoneNumber = phone
+    if (selectedParts.size > 0) body.parts = [...selectedParts]
+
+    try {
+
+      const res = await fetch('/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      let data
+      try {
+        data = await res.json()
+      } catch {
+        data = { error: "Invalid JSON response from server" }
+      }
+
+      const card = document.getElementById('responseCard')
+      const badge = document.getElementById('statusBadge')
+      const pre = document.getElementById('responseBody')
+
+      badge.textContent = `${res.status} ${res.ok ? 'OK' : 'Error'}`
+      badge.className = res.ok ? 's-ok' : 's-err'
+
+      pre.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2))
+
+      card.classList.add('visible')
+
+      if (res.ok) {
+
+        const c = data?.contact
+
+        const parts =
+          selectedParts.size > 0
+            ? [...selectedParts].map(p => '→ ' + p).join('\n')
+            : '→ No parts selected'
+
+        document.getElementById('confirmParts').textContent = parts
+        document.getElementById('cName').textContent = name || 'Not provided'
+        document.getElementById('cEmail').textContent = email || 'Not provided'
+        document.getElementById('cPhone').textContent = phone || 'Not provided'
+
+        document.getElementById('cId').textContent =
+          c?.primaryContactId ?? '—'
+
+        document.getElementById('cStatus').textContent =
+          c?.secondaryContactIds?.length === 0
+            ? 'New Customer ✦'
+            : 'Returning Customer'
+
+        document.getElementById('confirmOverlay').classList.add('show')
+
+        const histEl = document.getElementById('confirmHistory')
+        histEl.innerHTML = '<div class="confirm-history-empty">Loading...</div>'
+
+        try {
+
+          const hRes = await fetch('/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email || null,
+              phoneNumber: phone || null
+            })
+          })
+
+          if (hRes.status === 404 || !hRes.ok) {
+            histEl.innerHTML =
+              '<div class="confirm-history-empty">No previous purchases found.</div>'
+          }
+          else {
+
+            const hData = await hRes.json()
+
+            const prior =
+              hData.logs
+                .sort((a,b)=> new Date(a.firstSeen) - new Date(b.firstSeen))
+                .slice(0,-1)
+
+            if (prior.length === 0) {
+              histEl.innerHTML =
+                '<div class="confirm-history-empty">This is your first order.</div>'
+            }
+            else {
+
+              histEl.innerHTML = ''
+
+              prior.reverse().forEach((log, i) => {
+
+                const el = document.createElement('div')
+                el.className = 'ch-entry'
+
+                el.innerHTML = `
+                  <span class="h-badge ${log.type}">
+                    ${log.type.toUpperCase()}
+                  </span>
+
+                  ${log.email ?
+                    `<div class="h-row">
+                      <span class="h-key">Email</span>
+                      <span class="h-val">${log.email}</span>
+                    </div>` : ''}
+
+                  ${log.phoneNumber ?
+                    `<div class="h-row">
+                      <span class="h-key">Phone</span>
+                      <span class="h-val">${log.phoneNumber}</span>
+                    </div>` : ''}
+
+                  <div class="h-row">
+                    <span class="h-key">First seen</span>
+                    <span class="h-val">
+                      ${new Date(log.firstSeen).toLocaleDateString(
+                        'en-GB',
+                        {day:'2-digit',month:'short',year:'numeric'}
+                      )}
+                    </span>
+                  </div>
+                `
+
+                histEl.appendChild(el)
+
+                setTimeout(() => el.classList.add('show'), i * 60)
+              })
+            }
+          }
+
+        } catch {
+          histEl.innerHTML =
+            '<div class="confirm-history-empty">Could not load history.</div>'
+        }
+
+        selectedParts.clear()
+
+        document
+          .querySelectorAll('.part-item.selected')
+          .forEach(el => el.classList.remove('selected'))
+
+        updateQueueNote()
+      }
+
+    } catch (err) {
+
+      const card = document.getElementById('responseCard')
+
+      document.getElementById('statusBadge').textContent = 'Network Error'
+      document.getElementById('statusBadge').className = 's-err'
+
+      document.getElementById('responseBody').textContent = err.message
+
+      card.classList.add('visible')
+
+    } finally {
+
+      sending = false
+
+      btn.disabled = false
+      spinner.style.display = 'none'
+      btnText.textContent = '⚡ Submit Request'
+    }
+  }
+
+  async function lookupHistory() {
+
+    const email = document.getElementById('historyEmail').value.trim()
+    const phone = document.getElementById('historyPhone').value.trim()
+
+    if (!email && !phone) {
+      alert('Enter an email or phone to look up history.')
+      return
+    }
+
+    const btn = document.getElementById('lookupBtn')
+    const spinner = document.getElementById('lookupSpinner')
+    const text = document.getElementById('lookupText')
+
+    btn.disabled = true
+    spinner.style.display = 'block'
+    text.textContent = 'Retrieving...'
+
+    const results = document.getElementById('historyResults')
+    results.innerHTML = ''
+
+    try {
+
+      const res = await fetch('/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email || null,
+          phoneNumber: phone || null
+        })
+      })
+
+      if (res.status === 404) {
+        results.innerHTML = '<div class="history-empty">No records found.</div>'
+        return
+      }
+
+      const data = await res.json()
+
+      results.innerHTML =
+        `<div class="section-label" style="margin:12px 0 10px">
+          ${data.totalEntries} entr${data.totalEntries===1?'y':'ies'} —
+          Primary ID #${data.primaryContactId}
+        </div>`
+
+      data.logs.forEach((log, i) => {
+
+        const el = document.createElement('div')
+        el.className = 'history-entry'
+
+        el.innerHTML = `
+          <span class="h-badge ${log.type}">
+            ${log.type.toUpperCase()}
+          </span>
+
+          <div class="h-row">
+            <span class="h-key">Contact ID</span>
+            <span class="h-val">#${log.id}</span>
+          </div>
+
+          ${log.email ?
+            `<div class="h-row">
+              <span class="h-key">Email</span>
+              <span class="h-val">${log.email}</span>
+            </div>` : ''}
+
+          ${log.phoneNumber ?
+            `<div class="h-row">
+              <span class="h-key">Phone</span>
+              <span class="h-val">${log.phoneNumber}</span>
+            </div>` : ''}
+
+          <div class="h-row">
+            <span class="h-key">First seen</span>
+            <span class="h-val">
+              ${new Date(log.firstSeen).toLocaleDateString(
+                'en-GB',
+                {day:'2-digit',month:'short',year:'numeric'}
+              )}
+            </span>
+          </div>
+        `
+
+        results.appendChild(el)
+
+        setTimeout(() => el.classList.add('show'), i * 70)
+      })
+
+    } catch (err) {
+      results.innerHTML = `<div class="history-empty">Error: ${err.message}</div>`
+    } finally {
+      btn.disabled = false
+      spinner.style.display = 'none'
+      text.textContent = '◎ Retrieve Logs'
+    }
+  }
+
+  function copyResponse() {
+    navigator.clipboard.writeText(
+      document.getElementById('responseBody').textContent
+    ).then(() => {
+      const btn = document.querySelector('.copy-btn')
+      btn.textContent = 'Copied!'
+      setTimeout(() => btn.textContent = 'Copy', 1500)
+    })
+  }
+
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      sendRequest()
+    }
+  })
+</script>
+</body>
+</html>
