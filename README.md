@@ -1,5 +1,18 @@
 # BiteSpeed-Submission
 This is a submission for the BiteSpeed Backend engineer intern role. ps since, i am runnning a free instance on render initial startup may take time (1-2mins).
+
+Here are all the optimizations made to this specific repo post the initial commit:
+
+* Optimized database queries to **reduce multiple lookups into a single query**, minimizing unnecessary DB calls.
+* Wrapped identity reconciliation in a **database transaction** to keep operations atomic.
+* Fixed **concurrency race conditions** using row-level locking (`SELECT ... FOR UPDATE`) and database uniqueness constraints.
+* Added **unique indexes on email and phoneNumber** to prevent duplicate contacts during concurrent requests.
+* Implemented **connection pooling** for efficient database access instead of creating new connections per request.
+* Enforced **secure HTTP headers using Helmet** to protect against common web attacks.
+* Added **rate limiting** to cap the number of requests per minute and prevent abuse or denial-of-service attacks.
+* Added **strict input validation** for email and phone fields before processing requests.
+* Added Logging via Morgan for easier debugging in the future
+  
 # FluxKart Identity Reconciliation API
 
 A backend service that performs **customer identity reconciliation**.  
