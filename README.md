@@ -1,5 +1,5 @@
 # BiteSpeed-Submission
-This is a submission for the BiteSpeed Backend engineer intern role.
+This is a submission for the BiteSpeed Backend engineer intern role. ps since, i am runnning a free instance on render initial startup may take time (1-2mins).
 # FluxKart Identity Reconciliation API
 
 A backend service that performs **customer identity reconciliation**.  
