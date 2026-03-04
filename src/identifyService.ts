@@ -78,6 +78,7 @@ async function findMatches(
           OR
           ($2::text IS NOT NULL AND "phoneNumber" = $2)
         )
+    FOR UPDATE
     `,
     [email ?? null, phone ?? null]
   )
