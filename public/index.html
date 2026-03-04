@@ -539,7 +539,7 @@
 
   function togglePart(el, name) {
     el.classList.toggle('selected')
-    selectedParts[el.classList.contains('selected') ? 'add' : 'delete'](name)
+    el.classList.contains('selected') ? selectedParts.add(name) : selectedParts.delete(name)
     updateQueueNote()
   }
 
@@ -547,6 +547,7 @@
     const n = selectedParts.size
     const note = document.getElementById('queueNote')
     const text = document.getElementById('queueText')
+
     if (n === 0) {
       note.className = 'queue-note'
       text.textContent = 'Select parts to see queue priority'
@@ -584,14 +585,29 @@
     if (sending) return
     sending = true
 
-    const email = document.getElementById('emailInput').value.trim()
+    const email = document.getElementById('emailInput').value.trim().toLowerCase()
     const phone = document.getElementById('phoneInput').value.trim()
     const name = document.getElementById('nameInput').value.trim()
+    //added validation for email and phone inputs
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const phoneRegex = /^\d{6,15}$/
 
     if (!email && !phone) {
-      alert('Great Scott! Enter at least an email or phone number.')
-      sending = false
-      return
+    alert("Enter at least an email or phone number.")
+    sending = false
+    return
+    }
+
+    if (email && !emailRegex.test(email)) {
+    alert("Enter a valid email address.")
+    sending = false
+    return
+    }
+
+    if (phone && !phoneRegex.test(phone)) {
+    alert("Phone must contain only digits (6–15).")
+    sending = false
+    return
     }
 
     const btn = document.getElementById('sendBtn')
@@ -681,8 +697,8 @@
             const hData = await hRes.json()
 
             const prior =
-              hData.logs
-                .sort((a,b)=> new Date(a.firstSeen) - new Date(b.firstSeen))
+              hData.contacts
+                .sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt))
                 .slice(0,-1)
 
             if (prior.length === 0) {
@@ -699,8 +715,8 @@
                 el.className = 'ch-entry'
 
                 el.innerHTML = `
-                  <span class="h-badge ${log.type}">
-                    ${log.type.toUpperCase()}
+                  <span class="h-badge ${log.linkPrecedence}">
+                    ${log.linkPrecedence.toUpperCase()}
                   </span>
 
                   ${log.email ?
@@ -718,7 +734,7 @@
                   <div class="h-row">
                     <span class="h-key">First seen</span>
                     <span class="h-val">
-                      ${new Date(log.firstSeen).toLocaleDateString(
+                      ${new Date(log.createdAt).toLocaleDateString(
                         'en-GB',
                         {day:'2-digit',month:'short',year:'numeric'}
                       )}
@@ -770,7 +786,7 @@
 
   async function lookupHistory() {
 
-    const email = document.getElementById('historyEmail').value.trim()
+    const email = document.getElementById('historyEmail').value.trim().toLowerCase()
     const phone = document.getElementById('historyPhone').value.trim()
 
     if (!email && !phone) {
@@ -809,18 +825,18 @@
 
       results.innerHTML =
         `<div class="section-label" style="margin:12px 0 10px">
-          ${data.totalEntries} entr${data.totalEntries===1?'y':'ies'} —
+          ${data.totalContacts} entr${data.totalContacts===1?'y':'ies'} —
           Primary ID #${data.primaryContactId}
         </div>`
 
-      data.logs.forEach((log, i) => {
+      data.contacts.forEach((log, i) => {
 
         const el = document.createElement('div')
         el.className = 'history-entry'
 
         el.innerHTML = `
-          <span class="h-badge ${log.type}">
-            ${log.type.toUpperCase()}
+          <span class="h-badge ${log.linkPrecedence}">
+            ${log.linkPrecedence.toUpperCase()}
           </span>
 
           <div class="h-row">
@@ -843,7 +859,7 @@
           <div class="h-row">
             <span class="h-key">First seen</span>
             <span class="h-val">
-              ${new Date(log.firstSeen).toLocaleDateString(
+              ${new Date(log.createdAt).toLocaleDateString(
                 'en-GB',
                 {day:'2-digit',month:'short',year:'numeric'}
               )}
